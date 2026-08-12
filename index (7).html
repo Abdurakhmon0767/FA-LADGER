@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FA Ledger — ACCA Study Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --paper:#F6F4EA;
+    --paper-line:#DCD8C4;
+    --ink:#20293A;
+    --ink-soft:#5B6472;
+    --green:#2F5233;
+    --green-deep:#1F3A24;
+    --brass:#A8823C;
+    --brass-soft:#D9C9A3;
+    --red:#A63A2E;
+    --card:#FFFFFF;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 2.1em;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  a{color:inherit;}
+  ::selection{background:var(--brass-soft);}
+
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* ---------- Header ---------- */
+  header.top{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    gap:16px;flex-wrap:wrap;
+    border-bottom:3px double var(--ink);
+    padding-bottom:14px;margin-bottom:22px;
+  }
+  .brand{display:flex;flex-direction:column;gap:2px;}
+  .brand .mark{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;
+    color:var(--brass);text-transform:uppercase;font-weight:600;
+  }
+  .brand h1{
+    font-family:'Lora',serif;font-weight:700;font-size:28px;margin:0;
+    color:var(--green-deep);letter-spacing:-.01em;
+  }
+  .brand .sub{font-size:13px;color:var(--ink-soft);}
+  .userbox{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-soft);text-align:right;}
+  .userbox button{
+    margin-top:6px;background:none;border:1px solid var(--ink-soft);color:var(--ink-soft);
+    font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;
+  }
+  .userbox button:hover{border-color:var(--ink);color:var(--ink);}
+
+  /* ---------- Auth screen ---------- */
+  .auth-shell{
+    max-width:420px;margin:8vh auto;padding:0 20px;
+  }
+  .auth-card{
+    background:var(--card);border:1px solid var(--paper-line);border-radius:var(--radius);
+    padding:32px 28px;box-shadow:0 1px 3px rgba(32,41,58,.06), 0 8px 24px rgba(32,41,58,.05);
+  }
+  .auth-card h1{font-family:'Lora',serif;font-size:24px;margin:0 0 4px;color:var(--green-deep);}
+  .auth-card p.tag{color:var(--ink-soft);font-size:13px;margin:0 0 22px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;}
+  .field input{
+    width:100%;padding:10px 12px;border:1px solid #C9C4AE;border-radius:7px;
+    font-family:'Inter',sans-serif;font-size:14px;background:#FCFBF6;color:var(--ink);
+  }
+  .field input:focus{outline:2px solid var(--brass-soft);border-color:var(--brass);}
+  .btn-primary{
+    width:100%;padding:11px;border:none;border-radius:7px;background:var(--green);color:#fff;
+    font-weight:600;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif;
+  }
+  .btn-primary:hover{background:var(--green-deep);}
+  .btn-primary:disabled{opacity:.55;cursor:default;}
+  .auth-toggle{text-align:center;margin-top:16px;font-size:13px;color:var(--ink-soft);}
+  .auth-toggle button{background:none;border:none;color:var(--brass);font-weight:600;cursor:pointer;font-size:13px;text-decoration:underline;}
+  .auth-msg{font-size:13px;padding:9px 11px;border-radius:6px;margin-bottom:14px;}
+  .auth-msg.err{background:#FBEAE7;color:var(--red);}
+  .auth-msg.ok{background:#EAF1EA;color:var(--green-deep);}
+  .setup-note{font-size:12px;color:var(--ink-soft);text-align:center;margin-top:18px;line-height:1.5;}
+
+  /* ---------- Trial balance / summary ---------- */
+  .tb-card{
+    background:var(--card);border:1px solid var(--paper-line);border-radius:var(--radius);
+    padding:18px 20px;margin-bottom:22px;
+    box-shadow:0 1px 2px rgba(32,41,58,.05);
+  }
+  .tb-title{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink-soft);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;
+  }
+  .tb-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--paper-line);}
+  .tb-col{padding:12px 14px 4px;}
+  .tb-col.dr{border-right:1px solid var(--paper-line);}
+  .tb-col h3{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--ink-soft);margin:0 0 8px;text-transform:uppercase;}
+  .tb-row{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:13px;padding:4px 0;color:var(--ink);}
+  .tb-total{
+    display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;
+    border-top:1px solid var(--ink);padding-top:7px;margin-top:6px;
+  }
+  .tb-status{
+    margin-top:14px;text-align:center;padding:9px;border-radius:7px;font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:.06em;font-weight:600;
+  }
+  .tb-status.balanced{background:#EAF1EA;color:var(--green-deep);}
+  .tb-status.unbalanced{background:#FBEAE7;color:var(--red);}
+  .tb-bar{height:8px;background:var(--paper-line);border-radius:5px;overflow:hidden;margin-top:12px;}
+  .tb-bar-fill{height:100%;background:var(--green);border-radius:5px;transition:width .4s ease;}
+  .stats-row{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap;}
+  .stat-pill{
+    display:flex;align-items:center;gap:7px;background:#FCFBF6;border:1px solid var(--paper-line);
+    border-radius:20px;padding:6px 13px;font-size:12px;color:var(--ink-soft);
+  }
+  .stat-pill b{color:var(--ink);font-family:'IBM Plex Mono',monospace;}
+  .seal{
+    width:22px;height:22px;border-radius:50%;border:2px solid var(--brass);color:var(--brass);
+    display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'IBM Plex Mono',monospace;
+  }
+
+  /* ---------- Week tabs ---------- */
+  .week-tabs{
+    display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px;
+    scrollbar-width:thin;
+  }
+  .week-tab{
+    flex:0 0 auto;padding:8px 13px;border-radius:7px;border:1px solid var(--paper-line);
+    background:var(--card);cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;
+    color:var(--ink-soft);white-space:nowrap;position:relative;
+  }
+  .week-tab .n{font-weight:700;color:var(--ink);}
+  .week-tab.active{border-color:var(--green);background:var(--green);color:#fff;}
+  .week-tab.active .n{color:#fff;}
+  .week-tab .dot{
+    display:inline-block;width:6px;height:6px;border-radius:50%;margin-left:6px;background:var(--brass);
+    vertical-align:middle;
+  }
+
+  .week-head{margin-bottom:14px;}
+  .week-head .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:var(--brass);text-transform:uppercase;}
+  .week-head h2{font-family:'Lora',serif;font-size:21px;margin:2px 0 0;color:var(--green-deep);}
+
+  /* ---------- Day rows ---------- */
+  .day{
+    background:var(--card);border:1px solid var(--paper-line);border-radius:9px;
+    margin-bottom:9px;overflow:hidden;
+  }
+  .day.today{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass);}
+  .day-main{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;cursor:pointer;}
+  .checkbox{
+    flex:0 0 auto;width:22px;height:22px;border-radius:5px;border:1.5px solid #B9B39A;
+    display:flex;align-items:center;justify-content:center;margin-top:2px;background:#FCFBF6;
+    transition:.15s;
+  }
+  .checkbox svg{width:13px;height:13px;opacity:0;transition:.15s;}
+  .day.done .checkbox{background:var(--green);border-color:var(--green);}
+  .day.done .checkbox svg{opacity:1;}
+  .day-body{flex:1;min-width:0;}
+  .day-date{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:2px;
+  }
+  .day-date .today-tag{
+    background:var(--brass);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;letter-spacing:.06em;
+  }
+  .type-tag{font-size:9px;font-weight:700;letter-spacing:.06em;padding:1px 6px;border-radius:4px;text-transform:uppercase;}
+  .type-L{background:#E7EEF5;color:#33587A;}
+  .type-P{background:#FBEFE2;color:#9C6A28;}
+  .type-R{background:#EFEAF6;color:#5C4A94;}
+  .type-M{background:#FBEAE7;color:var(--red);}
+  .type-C{background:#EAF1EA;color:var(--green-deep);}
+  .day-title{font-size:14.5px;font-weight:600;color:var(--ink);line-height:1.35;}
+  .day.done .day-title{color:var(--ink-soft);text-decoration:line-through;text-decoration-color:#C9C4AE;}
+  .chev{flex:0 0 auto;color:var(--ink-soft);margin-top:4px;transition:transform .15s;font-size:12px;}
+  .day.open .chev{transform:rotate(90deg);}
+
+  .day-detail{display:none;padding:0 14px 14px 48px;}
+  .day.open .day-detail{display:block;}
+  .day-detail ul{margin:0 0 10px;padding-left:16px;font-size:13px;color:var(--ink-soft);line-height:1.6;}
+  .day-detail ul li{margin-bottom:2px;}
+  .note-box textarea{
+    width:100%;min-height:52px;border:1px solid var(--paper-line);border-radius:6px;padding:8px 9px;
+    font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink);background:#FCFBF6;resize:vertical;
+  }
+  .note-label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;display:block;}
+
+  .loading{text-align:center;padding:60px 0;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:13px;}
+  .config-warning{
+    max-width:560px;margin:10vh auto;padding:26px 26px;background:#FBEAE7;border:1px solid #E7BDB6;
+    border-radius:10px;color:var(--red);font-size:13.5px;line-height:1.7;
+  }
+  .config-warning h2{font-family:'Lora',serif;font-size:19px;margin:0 0 10px;}
+  .config-warning code{background:#fff;padding:1px 6px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:12px;}
+
+  @media (max-width:520px){
+    .brand h1{font-size:22px;}
+    .tb-grid{grid-template-columns:1fr;}
+    .tb-col.dr{border-right:none;border-bottom:1px solid var(--paper-line);}
+  }
+
+  /* ---------- Edit mode ---------- */
+  .edit-toggle{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 12px;border-radius:6px;
+    border:1px solid var(--brass);background:#fff;color:var(--brass);cursor:pointer;font-weight:600;
+  }
+  .edit-toggle.on{background:var(--brass);color:#fff;}
+  .day-controls{display:flex;flex-direction:column;gap:2px;flex:0 0 auto;margin-top:1px;}
+  .icon-btn{
+    width:22px;height:22px;border:1px solid var(--paper-line);background:#FCFBF6;border-radius:5px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);font-size:11px;
+    line-height:1;padding:0;
+  }
+  .icon-btn:hover{border-color:var(--brass);color:var(--brass);}
+  .icon-row{display:flex;gap:4px;}
+  .icon-btn.danger:hover{border-color:var(--red);color:var(--red);}
+  .edit-form{padding:2px 0 4px;}
+  .edit-form label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:10px 0 4px;}
+  .edit-form input[type=text], .edit-form input[type=date], .edit-form select, .edit-form textarea{
+    width:100%;padding:8px 10px;border:1px solid #C9C4AE;border-radius:6px;font-family:'Inter',sans-serif;
+    font-size:13.5px;color:var(--ink);background:#FCFBF6;
+  }
+  .edit-form textarea{min-height:78px;resize:vertical;}
+  .edit-actions{display:flex;gap:8px;margin-top:12px;}
+  .edit-actions button{
+    padding:7px 14px;border-radius:6px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;
+  }
+  .btn-save{background:var(--green);border:1px solid var(--green);color:#fff;}
+  .btn-cancel{background:#fff;border:1px solid var(--paper-line);color:var(--ink-soft);}
+  .add-day-row{
+    display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;margin-top:4px;
+    border:1.5px dashed var(--paper-line);border-radius:9px;cursor:pointer;color:var(--ink-soft);
+    font-family:'IBM Plex Mono',monospace;font-size:12px;
+  }
+  .add-day-row:hover{border-color:var(--brass);color:var(--brass);}
+</style>
+</head>
+<body>
+
+<div id="app"><div class="loading">Loading ledger…</div></div>
+
+<script>
+(function(){
+/* ============================================================
+   1. CONFIGURE THIS SECTION WITH YOUR OWN SUPABASE PROJECT
+   ============================================================ */
+const SUPABASE_URL = "https://ihdfftzwtcovytbszbxq.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_QKlvaU9hgbCG2xJCBT8beA_ImEmeKU8";
+/* ============================================================ */
+
+const START_DATE = new Date(2026, 7, 10); // Aug 10, 2026 (month is 0-indexed)
+const EXAM_WINDOW = "Nov 30 – Dec 10, 2026";
+
+/* ---------- Full 16-week ACCA FA plan ---------- */
+const PLAN = [
+  {
+    "title": "Understanding accounting",
+    "days": [
+      {
+        "t": "Topic 1 — Introduction to Accounting",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/introduction-to-financial-accounting-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Introduction to Accounting</a> — 18m",
+          "📝 Practice: ~36m (2× lecture time)",
+          "What accounting is",
+          "Purpose of accounting",
+          "Users of financial information",
+          "Types of businesses",
+          "Assets, liabilities, capital, income, expenses",
+          "Practice: basic classification questions"
+        ]
+      },
+      {
+        "t": "Topic 2 — Statement of Financial Position",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/statement-financial-position-income-statement-part-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">The SFP and Income Statement (part a)</a> — 40m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/the-statement-of-financial-position-and-income-statement-part-b-acca-fa-lectures/\" target=\"_blank\" rel=\"noopener\">The SFP and Income Statement (part b)</a> — 18m",
+          "📝 Practice: ~1h 56m (2× lecture time)",
+          "Assets: non-current vs current",
+          "Liabilities",
+          "Equity & capital",
+          "Structure of the SFP",
+          "Practice: classify items, prepare simple statements"
+        ]
+      },
+      {
+        "t": "Topic 2 — Statement of Profit or Loss",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/the-statement-of-financial-position-and-income-statement-part-c-acca-fa-lectures/\" target=\"_blank\" rel=\"noopener\">The SFP and Income Statement (part c)</a> — 9m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/statement-financial-position-income-statement-part-d/\" target=\"_blank\" rel=\"noopener\">The SFP and Income Statement (part d)</a> — 17m",
+          "📝 Practice: ~52m (2× lecture time)",
+          "Revenue",
+          "Cost of sales",
+          "Gross profit",
+          "Expenses",
+          "Profit before/after tax",
+          "Practice: calculate gross profit, prepare simple P&L"
+        ]
+      },
+      {
+        "t": "Topic 3 — Double Entry Bookkeeping",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/double-entry-bookkeeping-part-a-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Double Entry Bookkeeping (part a)</a> — 29m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/double-entry-bookkeeping-part-b-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Double Entry Bookkeeping (part b)</a> — 24m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/double-entry-bookkeeping-part-c-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Double Entry Bookkeeping (part c)</a> — 21m",
+          "Debit and credit",
+          "T-accounts",
+          "Accounting equation",
+          "Rules for assets, liabilities, equity, income, expenses",
+          "⚠️ Very important — don't rush this topic"
+        ]
+      },
+      {
+        "t": "Topic 3 — Double Entry (Practice Day)",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~2h 28m (2× lecture time)",
+          "Debit/credit exercises",
+          "T-accounts",
+          "Basic transactions",
+          "Accounting equation"
+        ]
+      },
+      {
+        "t": "Topic 11 — Journal Entries",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/journal-entries-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Journal Entries</a> — 5m",
+          "📝 Practice: ~10m (2× lecture time)",
+          "Journal entries",
+          "Source documents",
+          "Recording transactions",
+          "Basic journal examples",
+          "Practice 20–30 questions"
+        ]
+      },
+      {
+        "t": "Week 1 Review",
+        "y": "R",
+        "tasks": [
+          "Don't learn anything new",
+          "Review: intro, financial statements, double entry, journals",
+          "Test yourself without looking at notes"
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Adjustments",
+    "days": [
+      {
+        "t": "Topic 4 — Accruals",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/accruals-and-prepayments-part-a-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Accruals and Prepayments (part a)</a> — 18m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/accruals-and-prepayments-part-b-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Accruals and Prepayments (part b)</a> — 17m",
+          "📝 Practice: ~1h 10m (2× lecture time)",
+          "What an accrual is",
+          "Why accruals are required",
+          "Effect on profit",
+          "Effect on liabilities",
+          "Practice calculations"
+        ]
+      },
+      {
+        "t": "Topic 4 — Prepayments",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/accruals-prepayments-part-c-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Accruals and Prepayments (part c)</a> — 15m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/accruals-and-prepayments-part-d-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Accruals and Prepayments (part d)</a> — 16m",
+          "📝 Practice: ~1h 2m (2× lecture time)",
+          "What a prepayment is",
+          "Effect on expenses",
+          "SFP treatment",
+          "Practice"
+        ]
+      },
+      {
+        "t": "Topic 8 — Irrecoverable Debts",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/irrecoverable-debts-and-allowances-example-1-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Irrecoverable Debts and Allowances Example 1</a> — 21m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/irrecoverable-debts-and-allowances-example-2-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Irrecoverable Debts and Allowances Example 2</a> — 13m",
+          "📝 Practice: ~1h 8m (2× lecture time)",
+          "Bad / irrecoverable debts",
+          "Writing off receivables",
+          "Effect on profit",
+          "Accounting entries"
+        ]
+      },
+      {
+        "t": "Topic 8 — Allowances",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/irrecoverable-debts-and-allowances-example-3-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Irrecoverable Debts and Allowances Example 3</a> — 33m",
+          "📝 Practice: ~1h 6m (2× lecture time)",
+          "Allowance for receivables",
+          "Changes in allowance",
+          "Effect on profit"
+        ]
+      },
+      {
+        "t": "Topic 17 — Adjustments to Profit",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/adjustments-to-profits-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Adjustments to Profits (part a)</a> — 15m",
+          "📝 Practice: ~30m (2× lecture time)",
+          "Combine accruals, prepayments, irrecoverable debts, allowances",
+          "Practice mixed questions"
+        ]
+      },
+      {
+        "t": "Practice Day",
+        "y": "P",
+        "tasks": [
+          "Mixed questions from Weeks 1–2",
+          "Target: 30–40 questions"
+        ]
+      },
+      {
+        "t": "Review + Catch-up",
+        "y": "R",
+        "tasks": [
+          "Review Weeks 1–2",
+          "Catch up on anything missed"
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Non-current assets",
+    "days": [
+      {
+        "t": "Topic 6 — Depreciation",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/depreciation-introduction-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Depreciation Introduction</a> — 23m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/depreciation-example-1-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Depreciation Example 1</a> — 20m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/depreciation-example-2-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Depreciation Example 2</a> — 15m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/depreciation-example-3-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Depreciation Example 3</a> — 15m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/depreciation-example-4-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Depreciation Example 4</a> — 22m",
+          "Why depreciation exists",
+          "Straight-line method",
+          "Reducing balance method",
+          "Depreciable amount, useful life, residual value"
+        ]
+      },
+      {
+        "t": "Depreciation Practice",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~3h 10m (2× lecture time)",
+          "Aim for 20+ depreciation questions"
+        ]
+      },
+      {
+        "t": "Topic 7 — IAS 16 (Part 1)",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/ias-16-property-plant-and-equipment-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">IAS 16 Property, Plant and Equipment</a> — 4m",
+          "Recognition",
+          "Initial measurement",
+          "Cost",
+          "Subsequent expenditure",
+          "Depreciation",
+          "Disposal"
+        ]
+      },
+      {
+        "t": "Topic 7 — IAS 16 (Part 2)",
+        "y": "L",
+        "tasks": [
+          "📝 Practice: ~8m (2× lecture time)",
+          "Revaluation",
+          "Gains / losses",
+          "Carrying amount",
+          "Practice questions"
+        ]
+      },
+      {
+        "t": "Topic 21 — IAS 38",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/intangible-assets-goodwill-research-and-development-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Intangible Assets: Goodwill, Research and Development</a> — 15m",
+          "Intangible assets",
+          "Recognition",
+          "Research vs development",
+          "Amortisation"
+        ]
+      },
+      {
+        "t": "Topic 21 — Goodwill + Practice",
+        "y": "L",
+        "tasks": [
+          "📝 Practice: ~30m (2× lecture time)",
+          "Purchased goodwill",
+          "Internally generated goodwill",
+          "Research vs development",
+          "Practice"
+        ]
+      },
+      {
+        "t": "Review Weeks 1–3",
+        "y": "R",
+        "tasks": [
+          "Full review of everything so far"
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Inventory and reconciliations",
+    "days": [
+      {
+        "t": "Topic 9 — Inventory",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/inventory-and-ias-2-examples-1-3-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Inventory and IAS 2 Examples 1-3</a> — 24m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/inventory-and-ias-2-valuation-of-inventory-example-4-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Inventory and IAS 2 Valuation — Example 4</a> — 12m",
+          "📝 Practice: ~1h 12m (2× lecture time)",
+          "What inventory is",
+          "Cost of inventory",
+          "Net realisable value",
+          "Lower of cost and NRV"
+        ]
+      },
+      {
+        "t": "Topic 9 — IAS 2",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/inventory-and-ias-2-valuation-of-inventory-example-5-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Inventory and IAS 2 Valuation — Example 5</a> — 25m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/the-provisions-of-ias-2-inventories-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">The provisions of IAS 2: Inventories</a> — 6m",
+          "📝 Practice: ~1h 2m (2× lecture time)",
+          "Inventory valuation",
+          "FIFO",
+          "Weighted average",
+          "Inventory adjustments — practice heavily"
+        ]
+      },
+      {
+        "t": "Topic 15 — Bank Reconciliations",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/bank-reconciliations/\" target=\"_blank\" rel=\"noopener\">Bank Reconciliations (a)</a> — 25m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/bank-reconciliations-b-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Bank Reconciliations (b)</a> — 12m",
+          "Why bank reconciliation is needed",
+          "Cash book",
+          "Bank statement",
+          "Outstanding items"
+        ]
+      },
+      {
+        "t": "Bank Reconciliation Practice",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~1h 14m (2× lecture time)",
+          "Several complete reconciliations"
+        ]
+      },
+      {
+        "t": "Topic 16 — Supplier Statement Reconciliation",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/supplier-statement-reconciliation-acca-financial-accounting-fa-fia-ffa/\" target=\"_blank\" rel=\"noopener\">Supplier statement reconciliation</a> — 27m",
+          "📝 Practice: ~54m (2× lecture time)",
+          "Supplier statements",
+          "Differences",
+          "Missing invoices",
+          "Credit notes & payments"
+        ]
+      },
+      {
+        "t": "Mixed Practice",
+        "y": "P",
+        "tasks": [
+          "Inventory + bank reconciliation + supplier reconciliation"
+        ]
+      },
+      {
+        "t": "Review / Catch-up",
+        "y": "R",
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "title": "Errors and suspense accounts",
+    "days": [
+      {
+        "t": "Topic 17 — Errors",
+        "y": "L",
+        "tasks": [
+          "ℹ️ Covered within the Chapter 17 lecture (Adjustments to Profits) — no separate video.",
+          "Errors that affect the trial balance",
+          "Errors that don't affect the trial balance"
+        ]
+      },
+      {
+        "t": "Topic 17 — Suspense Accounts",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/suspense-accounts-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Suspense Accounts (part b)</a> — 22m",
+          "📝 Practice: ~44m (2× lecture time)",
+          "Why suspense accounts are created",
+          "Correcting errors",
+          "Journal entries"
+        ]
+      },
+      {
+        "t": "Topic 18 — Mark-up and Margins",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/mark-up-and-margins-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Mark-up and Margins</a> — 18m",
+          "Mark-up",
+          "Margin",
+          "Cost, selling price, gross profit"
+        ]
+      },
+      {
+        "t": "Topic 18 — Practice",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~36m (2× lecture time)",
+          "Calculations until the formulas become automatic"
+        ]
+      },
+      {
+        "t": "Topic 10 — Computers in Accounting",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/the-use-of-computers-in-accounting-acca-financial-accounting-fa-fia-ffa/\" target=\"_blank\" rel=\"noopener\">The use of computers in accounting</a> — 18m",
+          "📝 Practice: ~36m (2× lecture time)",
+          "Accounting information systems",
+          "Computerised accounting",
+          "Advantages, risks, controls"
+        ]
+      },
+      {
+        "t": "Topic 28 — Business Documentation",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/business-documentation-acca-financial-accounting-fa-fia-ffa/\" target=\"_blank\" rel=\"noopener\">Business Documentation</a> — 2m",
+          "📝 Practice: ~4m (2× lecture time)",
+          "Invoices",
+          "Credit notes",
+          "Receipts",
+          "Purchase orders",
+          "Delivery notes",
+          "Accounting records"
+        ]
+      },
+      {
+        "t": "Weekly Review",
+        "y": "R",
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "title": "IAS 37 + IAS 10",
+    "days": [
+      {
+        "t": "Topic 5 — IAS 37 (Part 1)",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/ias-37-provisions-contingent-liabilities-contingent-assets-acca-fa-lectures/\" target=\"_blank\" rel=\"noopener\">IAS 37 Provisions, Contingent Liabilities and Contingent Assets</a> — 12m",
+          "📝 Practice: ~24m (2× lecture time)",
+          "Provisions",
+          "Recognition criteria",
+          "Measurement"
+        ]
+      },
+      {
+        "t": "Topic 5 — IAS 37 (Part 2)",
+        "y": "L",
+        "tasks": [
+          "ℹ️ Continues the same Chapter 5 lecture — no separate video, just more practice.",
+          "Provision vs contingent liability vs contingent asset",
+          "Practice questions"
+        ]
+      },
+      {
+        "t": "Topic 20 — IAS 10",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/ias-10-events-after-the-reporting-period-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">IAS 10 Events after the Reporting Period</a> — 15m",
+          "Events after the reporting period",
+          "Adjusting events",
+          "Non-adjusting events"
+        ]
+      },
+      {
+        "t": "IAS 10 Practice",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~30m (2× lecture time)"
+        ]
+      },
+      {
+        "t": "Topic 19 — Accounting Conventions & Policies",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/accounting-conventions-and-policies-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Accounting Conventions and Policies</a> — 23m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/ifrs-15-revenue-recognition-acca-financial-accounting-fa/\" target=\"_blank\" rel=\"noopener\">IFRS 15 Revenue Recognition</a> — 16m",
+          "📝 Practice: ~1h 18m (2× lecture time)",
+          "Going concern",
+          "Accrual basis",
+          "Consistency",
+          "Prudence",
+          "Materiality",
+          "Accounting policies"
+        ]
+      },
+      {
+        "t": "Mixed Practice",
+        "y": "P",
+        "tasks": [
+          "IAS 37 + IAS 10 + accounting concepts"
+        ]
+      },
+      {
+        "t": "Review",
+        "y": "R",
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "title": "Limited companies",
+    "days": [
+      {
+        "t": "Topic 13 — Limited Companies (Share Capital)",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/accounting-for-limited-companies-the-statement-of-profit-and-loss-acca-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Limited Companies — Statement of P&L</a> — 13m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/the-statement-of-financial-position-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">The Statement of Financial Position</a> — 16m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/rights-issues-and-bonus-issues-of-shares-acca-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Rights issues and Bonus issues of shares</a> — 21m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/preference-shares-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Preference Shares</a> — 11m",
+          "Share capital",
+          "Ordinary shares",
+          "Preference shares",
+          "Share issues"
+        ]
+      },
+      {
+        "t": "Topic 13 — Dividends & Reserves",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/limited-companies-dividends-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Limited Companies — Dividends</a> — 28m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/revaluation-reserve-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Revaluation Reserve</a> — 19m",
+          "Dividends",
+          "Reserves",
+          "Retained earnings",
+          "Statement of changes in equity"
+        ]
+      },
+      {
+        "t": "Company Accounting Practice",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~3h 36m (2× lecture time) — covers both Share Capital and Dividends & Reserves lectures"
+        ]
+      },
+      {
+        "t": "Topic 12 — Sales Tax",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/sales-tax-part-a-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Sales Tax (part a)</a> — 23m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/sales-tax-part-b-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Sales Tax (part b)</a> — 12m",
+          "Sales tax / VAT concept",
+          "Input tax",
+          "Output tax",
+          "Accounting treatment"
+        ]
+      },
+      {
+        "t": "Sales Tax Calculations + Practice",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~1h 10m (2× lecture time)"
+        ]
+      },
+      {
+        "t": "Mixed Questions",
+        "y": "P",
+        "tasks": [
+          "Companies + sales tax"
+        ]
+      },
+      {
+        "t": "Review",
+        "y": "R",
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "title": "Cash flow",
+    "days": [
+      {
+        "t": "Topic 14 — Statements of Cash Flows",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/statement-of-cash-flows-introduction-part-a-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Statement of Cash Flows Introduction</a> — 10m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/statement-of-cash-flows-part-b-example-1-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Statement of Cash Flows — Example 1</a> — 32m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/statement-of-cash-flows-part-c-example-2-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Statement of Cash Flows — Example 2</a> — 20m",
+          "Purpose of the cash flow statement",
+          "Operating activities",
+          "Investing activities",
+          "Financing activities"
+        ]
+      },
+      {
+        "t": "Cash Flow Calculations",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~2h 4m (2× lecture time) — spread across this and the next 2 practice days"
+        ]
+      },
+      {
+        "t": "Cash Flow Statement — Complete Questions",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Cash Flow Practice",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Topic 27 — Regulatory Framework",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/regulatory-framework-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Regulatory Framework</a> — 6m",
+          "📝 Practice: ~12m (2× lecture time)",
+          "Why accounting standards exist",
+          "IASB",
+          "IFRS",
+          "Regulatory framework",
+          "Financial reporting requirements"
+        ]
+      },
+      {
+        "t": "Review Weeks 6–8",
+        "y": "R",
+        "tasks": []
+      },
+      {
+        "t": "🎯 Major Checkpoint",
+        "y": "C",
+        "tasks": [
+          "You should have covered most individual accounting topics by now"
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Consolidation begins",
+    "days": [
+      {
+        "t": "Topic 22 — Consolidated SFP (Intro)",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/group-accounts-the-consolidated-statement-of-financial-position-1a-acca-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Consolidated SFP (1a)</a> — 20m",
+          "📝 Practice: ~40m (2× lecture time)",
+          "Parent",
+          "Subsidiary",
+          "Group",
+          "Control",
+          "Acquisition"
+        ]
+      },
+      {
+        "t": "Net Assets, Goodwill, Fair Value Adjustments",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/group-accounts-the-consolidated-statement-of-financial-position-1b-acca-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Consolidated SFP (1b)</a> — 21m",
+          "📝 Practice: ~42m (2× lecture time)"
+        ]
+      },
+      {
+        "t": "Goodwill Calculations",
+        "y": "P",
+        "tasks": [
+          "Practice repeatedly"
+        ]
+      },
+      {
+        "t": "Non-Controlling Interest (NCI)",
+        "y": "L",
+        "tasks": [
+          "NCI calculation",
+          "Treatment in consolidated statements"
+        ]
+      },
+      {
+        "t": "Topic 23 — Consolidated SFP",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/group-accounts-the-consolidated-statement-of-financial-position-2a-acca-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Consolidated SFP (2a)</a> — 14m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/group-accounts-the-consolidated-statement-of-financial-position-2b-acca-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Consolidated SFP (2b)</a> — 17m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/group-accounts-the-consolidated-statement-of-financial-position-2c-acca-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Consolidated SFP (2c)</a> — 27m",
+          "Full worked examples"
+        ]
+      },
+      {
+        "t": "Consolidation Practice",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~1h 56m (2× lecture time)"
+        ]
+      },
+      {
+        "t": "Consolidation Review",
+        "y": "R",
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "title": "Consolidated profit or loss",
+    "days": [
+      {
+        "t": "Topic 24 — Consolidated Statement of P&L",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/group-accounts-consolidated-income-statement-part-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Consolidated Income Statement (part a)</a> — 15m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/group-accounts-the-consolidated-income-statement-part-b-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Consolidated Income Statement (part b)</a> — 16m",
+          "Group revenue",
+          "Group cost of sales",
+          "Group expenses",
+          "Profit"
+        ]
+      },
+      {
+        "t": "Continue Consolidation Calculations",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~1h 2m (2× lecture time)"
+        ]
+      },
+      {
+        "t": "Topic 25 — Group Accounts: Further Points",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/group-accounts-further-points-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Group Accounts — Further Points</a> — 12m",
+          "Additional consolidation adjustments"
+        ]
+      },
+      {
+        "t": "Continue Topic 25",
+        "y": "L",
+        "tasks": [
+          "📝 Practice: ~24m (2× lecture time)"
+        ]
+      },
+      {
+        "t": "Consolidation Mixed Questions",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "📝 Consolidation Mini-Mock",
+        "y": "M",
+        "tasks": [
+          "Set of questions without looking at notes"
+        ]
+      },
+      {
+        "t": "Review Every Consolidation Mistake",
+        "y": "R",
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "title": "Interpretation + final syllabus topics",
+    "days": [
+      {
+        "t": "Topic 26 — Interpretation of Financial Statements",
+        "y": "L",
+        "tasks": [
+          "🎥 <a href=\"https://opentuition.com/acca/fa/interpretation-of-financial-statements-part-a-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Interpretation of Financial Statements (part a)</a> — 23m",
+          "🎥 <a href=\"https://opentuition.com/acca/fa/interpretation-financial-statements-part-b-acca-financial-accounting-fa-lectures/\" target=\"_blank\" rel=\"noopener\">Interpretation of Financial Statements (part b)</a> — 29m",
+          "Profitability ratios",
+          "Liquidity ratios",
+          "Efficiency ratios",
+          "Gearing",
+          "Investor ratios"
+        ]
+      },
+      {
+        "t": "Ratio Calculations",
+        "y": "P",
+        "tasks": [
+          "📝 Practice: ~1h 44m (2× lecture time)"
+        ]
+      },
+      {
+        "t": "Ratio Interpretation",
+        "y": "L",
+        "tasks": [
+          "Don't just memorize formulas — understand what an increase/decrease means"
+        ]
+      },
+      {
+        "t": "Topic 19 Revision",
+        "y": "R",
+        "tasks": [
+          "Accounting policies / conventions"
+        ]
+      },
+      {
+        "t": "Topic 27 Revision",
+        "y": "R",
+        "tasks": [
+          "Regulatory framework"
+        ]
+      },
+      {
+        "t": "Topic 28 Revision",
+        "y": "R",
+        "tasks": [
+          "Business documentation"
+        ]
+      },
+      {
+        "t": "🎯 Full Syllabus Review",
+        "y": "C",
+        "tasks": [
+          "All major topics studied — objective 1 complete"
+        ]
+      }
+    ]
+  },
+  {
+    "title": "First Exam Kit week",
+    "days": [
+      {
+        "t": "Exam Kit: Intro, SFP, P&L, Double Entry",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit: Journals, Accruals, Prepayments, Irrecoverable Debts, Allowances",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit: Depreciation, IAS 16, IAS 38",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit: Inventory, IAS 2, Bank Rec, Supplier Rec",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit: Errors, Suspense Accounts, Mark-up/Margins",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Mixed Exam Kit",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "🔄 Analyze Your Mistakes",
+        "y": "R",
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "title": "Exam Kit intensive",
+    "days": [
+      {
+        "t": "Exam Kit: Companies + Sales Tax",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit: Cash Flows",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit: IAS 37 + IAS 10",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit: Accounting Concepts + Regulatory Framework",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit: Interpretation + Ratios",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit: Consolidation",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit: Consolidation + Weak Areas",
+        "y": "P",
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "title": "Mixed Exam Kit",
+    "days": [
+      {
+        "t": "Mixed Exam Kit",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Mixed Exam Kit",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Review Mistakes + Weak Topics",
+        "y": "R",
+        "tasks": []
+      },
+      {
+        "t": "Mixed Exam Kit",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Mixed Exam Kit",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Timed Practice",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "Review",
+        "y": "R",
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "title": "Mock exams",
+    "days": [
+      {
+        "t": "🧪 Full Mock",
+        "y": "M",
+        "tasks": []
+      },
+      {
+        "t": "Analyze Every Mistake",
+        "y": "R",
+        "tasks": []
+      },
+      {
+        "t": "Study Your 3 Weakest Topics",
+        "y": "R",
+        "tasks": []
+      },
+      {
+        "t": "🧪 Full Mock",
+        "y": "M",
+        "tasks": []
+      },
+      {
+        "t": "Analyze Mistakes",
+        "y": "R",
+        "tasks": []
+      },
+      {
+        "t": "Weak-Topic Practice",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "🧪 Full Mock",
+        "y": "M",
+        "tasks": []
+      }
+    ]
+  },
+  {
+    "title": "Final preparation",
+    "days": [
+      {
+        "t": "Review Your Mistake Notebook",
+        "y": "R",
+        "tasks": []
+      },
+      {
+        "t": "Exam Kit — Weak Areas",
+        "y": "P",
+        "tasks": []
+      },
+      {
+        "t": "🧪 Full Mock",
+        "y": "M",
+        "tasks": []
+      },
+      {
+        "t": "Analyze Mock",
+        "y": "R",
+        "tasks": []
+      },
+      {
+        "t": "Final Revision",
+        "y": "R",
+        "tasks": []
+      },
+      {
+        "t": "🧪 Final Mock",
+        "y": "M",
+        "tasks": []
+      },
+      {
+        "t": "Light Review / Rest",
+        "y": "R",
+        "tasks": [
+          "🎯 Target exam window: Nov 30 – Dec 10, 2026 — book based on mock results, not the calendar"
+        ]
+      }
+    ]
+  }
+];
+
+
+const TYPE_LABEL = {L:"Learn", P:"Practice", R:"Review", M:"Mock", C:"Checkpoint"};
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+// Flatten PLAN into base items keyed by stable id, plus the default order.
+let baseItemsById = {};
+let baseOrder = [];
+let baseWeekOf = {}; // id -> original week number (for subtitle heuristic)
+
+function isoDate(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function parseIso(s){
+  return new Date(s+'T00:00:00');
+}
+
+(function buildBase(){
+  let idx = 0;
+  PLAN.forEach((week, wi)=>{
+    week.days.forEach((d)=>{
+      const id = idx+1;
+      const date = new Date(START_DATE);
+      date.setDate(date.getDate() + idx);
+      baseItemsById[id] = {t:d.t, y:d.y, tasks:d.tasks.slice(), date:isoDate(date)};
+      baseOrder.push(id);
+      baseWeekOf[id] = wi+1;
+      idx++;
+    });
+  });
+})();
+
+function fmtDate(d){
+  return DOW[d.getDay()]+", "+d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+}
+function sameDay(a,b){
+  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+
+/* ---------- App state ---------- */
+let supabase = null;
+let session = null;
+let progress = {};        // { id: {completed, completed_at, note} }
+let itemsById = {};        // current (possibly edited) content, keyed by stable id
+let order = [];            // current sequence of ids
+let activeWeek = 1;
+let openDay = null;
+let editMode = false;
+let editingId = null;      // id currently open in the edit form
+let configOk = SUPABASE_URL.startsWith("https://") && SUPABASE_ANON_KEY.length > 20;
+
+const app = document.getElementById('app');
+
+function resetToBase(){
+  itemsById = JSON.parse(JSON.stringify(baseItemsById));
+  order = baseOrder.slice();
+}
+resetToBase();
+
+function buildGlobalDays(){
+  const startMid = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), START_DATE.getDate());
+  const arr = order
+    .filter(id=>itemsById[id])
+    .map(id=>({id, ...itemsById[id]}))
+    .sort((a,b)=> parseIso(a.date) - parseIso(b.date) || a.id-b.id);
+  return arr.map(item=>{
+    const date = parseIso(item.date);
+    const diffDays = Math.round((date - startMid) / 86400000);
+    const week = Math.floor(diffDays/7) + 1;
+    return {...item, week, date};
+  });
+}
+
+function weekTitleFor(weekNum, weekDays){
+  const ids = weekDays.filter(d=>d.week===weekNum).map(d=>d.id);
+  const baseWeeks = ids.map(id=>baseWeekOf[id]).filter(Boolean);
+  if(baseWeeks.length && baseWeeks.every(w=>w===baseWeeks[0]) && ids.length===7){
+    return PLAN[baseWeeks[0]-1].title;
+  }
+  return "Custom week";
+}
+
+function render(){
+  if(!configOk){ renderConfigWarning(); return; }
+  if(!session){ renderAuth(); return; }
+  renderDashboard();
+}
+
+function renderConfigWarning(){
+  app.innerHTML = `<div class="config-warning">
+    <h2>Almost there — connect your Supabase project</h2>
+    <p>This ledger needs a free Supabase project so your progress can sync across every device with your own email &amp; password login.</p>
+    <p>Open <code>index.html</code> in a text editor and replace <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> near the top of the script with the values from your Supabase project's Settings → API page.</p>
+  </div>`;
+}
+
+/* ---------- Auth screen ---------- */
+let authMode = 'signin';
+let authMsg = null;
+let authBusy = false;
+
+function renderAuth(){
+  app.innerHTML = `
+  <div class="auth-shell">
+    <div class="brand" style="align-items:center;text-align:center;margin-bottom:22px;">
+      <div class="mark">ACCA · FA</div>
+      <h1>FA Ledger</h1>
+      <div class="sub">Your study tracker — synced across every device</div>
+    </div>
+    <div class="auth-card">
+      <h1>${authMode==='signin' ? 'Welcome back' : 'Create your ledger'}</h1>
+      <p class="tag">${authMode==='signin' ? 'Sign in to continue your progress.' : 'Sign up to start tracking — free, and syncs everywhere.'}</p>
+      ${authMsg ? `<div class="auth-msg ${authMsg.type}">${authMsg.text}</div>` : ''}
+      <form id="authForm">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="authEmail" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="authPass" required autocomplete="${authMode==='signin'?'current-password':'new-password'}" minlength="6" />
+        </div>
+        <button class="btn-primary" type="submit" ${authBusy?'disabled':''}>${authBusy ? 'Please wait…' : (authMode==='signin' ? 'Sign in' : 'Sign up')}</button>
+      </form>
+      <div class="auth-toggle">
+        ${authMode==='signin' ? `New here? <button id="toggleAuth">Create an account</button>` : `Already have an account? <button id="toggleAuth">Sign in</button>`}
+      </div>
+    </div>
+    <div class="setup-note">One account, any device — phone, work computer, laptop. Your progress lives in your own Supabase project.</div>
+  </div>`;
+
+  document.getElementById('toggleAuth').onclick = ()=>{
+    authMode = authMode==='signin' ? 'signup' : 'signin';
+    authMsg = null;
+    render();
+  };
+  document.getElementById('authForm').onsubmit = async (e)=>{
+    e.preventDefault();
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPass').value;
+    authBusy = true; authMsg = null; render();
+    try{
+      if(authMode==='signin'){
+        const {data, error} = await supabase.auth.signInWithPassword({email, password});
+        if(error) throw error;
+        session = data.session;
+        await loadAll();
+      } else {
+        const {data, error} = await supabase.auth.signUp({email, password});
+        if(error) throw error;
+        if(data.session){
+          session = data.session;
+          await loadAll();
+        } else {
+          authMsg = {type:'ok', text:'Account created. Check your email to confirm, then sign in.'};
+          authMode = 'signin';
+        }
+      }
+    }catch(err){
+      authMsg = {type:'err', text: err.message || 'Something went wrong.'};
+    }
+    authBusy = false;
+    render();
+  };
+}
+
+/* ---------- Dashboard ---------- */
+function computeStats(days){
+  const total = days.length;
+  const done = days.filter(d=>progress[d.id]?.completed).length;
+  const remaining = total - done;
+  const pct = total ? Math.round((done/total)*100) : 0;
+
+  let streak = 0;
+  const doneIds = days.filter(d=>progress[d.id]?.completed).map(d=>d.id);
+  const doneIndexSet = new Set(days.map((d,i)=>progress[d.id]?.completed ? i : -1).filter(i=>i>=0));
+  // streak counted by position in sequence, walking back from the latest completed position
+  const positions = [...doneIndexSet].sort((a,b)=>b-a);
+  if(positions.length){
+    let expected = positions[0];
+    for(const p of positions){
+      if(p===expected){ streak++; expected--; } else break;
+    }
+  }
+  const today = new Date();
+  const todayEntry = days.find(d=>sameDay(d.date, today));
+  return {total, done, remaining, pct, streak, todayEntry};
+}
+
+function renderDashboard(){
+  const days = buildGlobalDays();
+  const stats = computeStats(days);
+  const totalWeeks = Math.ceil(days.length/7) || 1;
+  if(activeWeek > totalWeeks) activeWeek = totalWeeks;
+  const weekDays = days.filter(d=>d.week===activeWeek);
+  const wTitle = weekTitleFor(activeWeek, days);
+  const today = new Date();
+
+  app.innerHTML = `
+  <div class="wrap">
+    <header class="top">
+      <div class="brand">
+        <div class="mark">ACCA · Paper FA</div>
+        <h1>FA Ledger</h1>
+        <div class="sub">${days.length}-day plan · starts ${fmtDate(days[0]?.date || START_DATE)} · exam window ${EXAM_WINDOW}</div>
+      </div>
+      <div class="userbox">
+        ${session.user.email}
+        <br>
+        <button id="editToggleBtn" class="edit-toggle ${editMode?'on':''}" style="margin-top:6px;">${editMode ? '✓ Done editing' : '✎ Edit plan'}</button>
+        <br><button id="signOutBtn" style="margin-top:6px;">Sign out</button>
+      </div>
+    </header>
+
+    <div class="tb-card">
+      <div class="tb-title"><span>Trial Balance — Progress</span><span>${stats.done} of ${stats.total}</span></div>
+      <div class="tb-grid">
+        <div class="tb-col dr">
+          <h3>Dr — Remaining</h3>
+          <div class="tb-row"><span>Days not yet posted</span><span>${stats.remaining}</span></div>
+          <div class="tb-total"><span>Total Dr</span><span>${stats.remaining}</span></div>
+        </div>
+        <div class="tb-col cr">
+          <h3>Cr — Completed</h3>
+          <div class="tb-row"><span>Days posted</span><span>${stats.done}</span></div>
+          <div class="tb-total"><span>Total Cr</span><span>${stats.done}</span></div>
+        </div>
+      </div>
+      <div class="tb-bar"><div class="tb-bar-fill" style="width:${stats.pct}%"></div></div>
+      <div class="tb-status ${stats.pct===100?'balanced':'unbalanced'}">
+        ${stats.pct===100 ? '✓ BALANCED — SYLLABUS COMPLETE' : stats.pct+'% POSTED — '+stats.remaining+' DAYS TO GO'}
+      </div>
+      <div class="stats-row">
+        <div class="stat-pill"><span class="seal">${stats.streak}</span> day streak</div>
+        <div class="stat-pill">Today: <b>${stats.todayEntry ? fmtDate(stats.todayEntry.date) : '—'}</b></div>
+        <div class="stat-pill">Week <b>${activeWeek}</b> of ${totalWeeks}</div>
+      </div>
+    </div>
+
+    ${editMode ? `<div class="auth-msg ok" style="margin-bottom:16px;">Edit mode is on — use ✎ to rename a day, ▲▼ to move it earlier/later, × to delete it, or add a new day at the bottom of a week.</div>` : ''}
+
+    <div class="week-tabs" id="weekTabs"></div>
+
+    <div class="week-head">
+      <div class="eyebrow">Week ${activeWeek} of ${totalWeeks}</div>
+      <h2>${wTitle}</h2>
+    </div>
+
+    <div id="dayList"></div>
+  </div>`;
+
+  document.getElementById('signOutBtn').onclick = async ()=>{
+    await supabase.auth.signOut();
+    session = null; progress = {}; resetToBase();
+    render();
+  };
+  document.getElementById('editToggleBtn').onclick = ()=>{
+    editMode = !editMode;
+    editingId = null;
+    render();
+  };
+
+  const tabsEl = document.getElementById('weekTabs');
+  for(let wn=1; wn<=totalWeeks; wn++){
+    const wDays = days.filter(d=>d.week===wn);
+    const wDone = wDays.filter(d=>progress[d.id]?.completed).length;
+    const complete = wDone===wDays.length && wDays.length>0;
+    const btn = document.createElement('button');
+    btn.className = 'week-tab' + (wn===activeWeek ? ' active':'');
+    btn.innerHTML = `<span class="n">${wn}</span>${complete ? '<span class="dot"></span>' : ''}`;
+    btn.onclick = ()=>{ activeWeek = wn; openDay=null; editingId=null; render(); };
+    tabsEl.appendChild(btn);
+  }
+
+  const listEl = document.getElementById('dayList');
+  weekDays.forEach((d, iInWeek)=>{
+    const isDone = !!progress[d.id]?.completed;
+    const isToday = sameDay(d.date, today);
+    const isOpen = openDay===d.id;
+    const isEditing = editingId===d.id;
+    const note = progress[d.id]?.note || '';
+
+    const el = document.createElement('div');
+    el.className = 'day' + (isDone?' done':'') + (isToday?' today':'') + (isOpen||isEditing?' open':'');
+
+    const controls = editMode ? `
+      <div class="day-controls">
+        <div class="icon-row">
+          <button class="icon-btn" data-move="up:${d.id}" title="Move one day earlier">▲</button>
+          <button class="icon-btn" data-move="down:${d.id}" title="Move one day later">▼</button>
+        </div>
+        <div class="icon-row">
+          <button class="icon-btn" data-edit="${d.id}" title="Edit">✎</button>
+          <button class="icon-btn danger" data-delete="${d.id}" title="Delete">×</button>
+        </div>
+      </div>` : '';
+
+    el.innerHTML = `
+      <div class="day-main">
+        <div class="checkbox" data-check="${d.id}">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="day-body" data-toggle="${d.id}">
+          <div class="day-date">
+            ${fmtDate(d.date)}
+            ${isToday ? '<span class="today-tag">TODAY</span>' : ''}
+            <span class="type-tag type-${d.y}">${TYPE_LABEL[d.y]||d.y}</span>
+          </div>
+          <div class="day-title">${d.t}</div>
+        </div>
+        ${controls}
+        ${!editMode ? `<div class="chev" data-toggle="${d.id}">▸</div>` : ''}
+      </div>
+      <div class="day-detail">
+        ${isEditing ? renderEditForm(d) : `
+          ${d.tasks.length ? `<ul>${d.tasks.map(x=>`<li>${x}</li>`).join('')}</ul>` : ''}
+          <div class="note-box">
+            <span class="note-label">Notes</span>
+            <textarea data-note="${d.id}" placeholder="Anything worth remembering about this day…">${note}</textarea>
+          </div>
+        `}
+      </div>
+    `;
+    listEl.appendChild(el);
+  });
+
+  if(editMode){
+    const addRow = document.createElement('div');
+    addRow.className = 'add-day-row';
+    addRow.textContent = '+ Add a day to this week';
+    addRow.onclick = ()=>addDayAfter(weekDays.length ? weekDays[weekDays.length-1].id : null);
+    listEl.appendChild(addRow);
+  }
+
+  wireDayEvents(listEl);
+}
+
+function renderEditForm(d){
+  return `
+    <div class="edit-form" data-form="${d.id}">
+      <label>Date</label>
+      <input type="date" data-field="date" value="${isoDate(d.date)}" />
+      <label>Title</label>
+      <input type="text" data-field="t" value="${d.t.replace(/"/g,'&quot;')}" />
+      <label>Type</label>
+      <select data-field="y">
+        ${Object.entries(TYPE_LABEL).map(([k,v])=>`<option value="${k}" ${d.y===k?'selected':''}>${v}</option>`).join('')}
+      </select>
+      <label>Tasks (one per line)</label>
+      <textarea data-field="tasks">${d.tasks.join('\n')}</textarea>
+      <div class="edit-actions">
+        <button class="btn-save" data-save="${d.id}">Save</button>
+        <button class="btn-cancel" data-cancel="${d.id}">Cancel</button>
+      </div>
+    </div>
+  `;
+}
+
+function wireDayEvents(listEl){
+  listEl.querySelectorAll('[data-check]').forEach(elx=>{
+    elx.onclick = (e)=>{ e.stopPropagation(); toggleDay(Number(elx.dataset.check)); };
+  });
+  listEl.querySelectorAll('[data-toggle]').forEach(elx=>{
+    elx.onclick = ()=>{
+      const id = Number(elx.dataset.toggle);
+      if(editMode) return;
+      openDay = openDay===id ? null : id;
+      render();
+    };
+  });
+  listEl.querySelectorAll('[data-note]').forEach(elx=>{
+    elx.onblur = ()=> saveNote(Number(elx.dataset.note), elx.value);
+  });
+  listEl.querySelectorAll('[data-edit]').forEach(elx=>{
+    elx.onclick = (e)=>{ e.stopPropagation(); editingId = Number(elx.dataset.edit); openDay=null; render(); };
+  });
+  listEl.querySelectorAll('[data-cancel]').forEach(elx=>{
+    elx.onclick = (e)=>{ e.stopPropagation(); editingId = null; render(); };
+  });
+  listEl.querySelectorAll('[data-save]').forEach(elx=>{
+    elx.onclick = (e)=>{
+      e.stopPropagation();
+      const id = Number(elx.dataset.save);
+      const form = listEl.querySelector(`[data-form="${id}"]`);
+      const t = form.querySelector('[data-field="t"]').value.trim() || 'Untitled day';
+      const y = form.querySelector('[data-field="y"]').value;
+      const tasks = form.querySelector('[data-field="tasks"]').value.split('\n').map(s=>s.trim()).filter(Boolean);
+      const dateVal = form.querySelector('[data-field="date"]').value;
+      const date = dateVal || itemsById[id].date;
+      itemsById[id] = {t, y, tasks, date};
+      editingId = null;
+      savePlanState();
+      const days = buildGlobalDays();
+      const found = days.find(x=>x.id===id);
+      if(found) activeWeek = found.week;
+      render();
+    };
+  });
+  listEl.querySelectorAll('[data-delete]').forEach(elx=>{
+    elx.onclick = (e)=>{
+      e.stopPropagation();
+      const id = Number(elx.dataset.delete);
+      if(order.length<=1) return;
+      if(!confirm('Delete this day from the plan?')) return;
+      order = order.filter(x=>x!==id);
+      delete itemsById[id];
+      if(editingId===id) editingId = null;
+      savePlanState();
+      render();
+    };
+  });
+  listEl.querySelectorAll('[data-move]').forEach(elx=>{
+    elx.onclick = (e)=>{
+      e.stopPropagation();
+      const [dir, idStr] = elx.dataset.move.split(':');
+      const id = Number(idStr);
+      const item = itemsById[id];
+      if(!item) return;
+      const d = parseIso(item.date);
+      d.setDate(d.getDate() + (dir==='up' ? -1 : 1));
+      item.date = isoDate(d);
+      savePlanState();
+      const days = buildGlobalDays();
+      const found = days.find(x=>x.id===id);
+      if(found) activeWeek = found.week;
+      render();
+    };
+  });
+}
+
+function addDayAfter(afterId){
+  const newId = Date.now();
+  let newDate;
+  if(afterId!=null && itemsById[afterId]){
+    const d = parseIso(itemsById[afterId].date);
+    d.setDate(d.getDate()+1);
+    newDate = isoDate(d);
+  } else {
+    newDate = isoDate(START_DATE);
+  }
+  itemsById[newId] = {t:'New day', y:'L', tasks:[], date:newDate};
+  order.push(newId);
+  editingId = newId;
+  savePlanState();
+  const days = buildGlobalDays();
+  const found = days.find(x=>x.id===newId);
+  if(found) activeWeek = found.week;
+  render();
+}
+
+async function toggleDay(id){
+  const cur = progress[id]?.completed || false;
+  progress[id] = {...(progress[id]||{}), completed: !cur, completed_at: !cur ? new Date().toISOString() : null};
+  render();
+  try{
+    await supabase.from('day_progress').upsert({
+      user_id: session.user.id,
+      day_id: id,
+      completed: !cur,
+      completed_at: !cur ? new Date().toISOString() : null,
+      note: progress[id]?.note || ''
+    }, {onConflict:'user_id,day_id'});
+  }catch(err){ console.error('sync error', err); }
+}
+
+async function saveNote(id, text){
+  progress[id] = {...(progress[id]||{}), note:text};
+  try{
+    await supabase.from('day_progress').upsert({
+      user_id: session.user.id,
+      day_id: id,
+      completed: progress[id]?.completed || false,
+      completed_at: progress[id]?.completed_at || null,
+      note: text
+    }, {onConflict:'user_id,day_id'});
+  }catch(err){ console.error('sync error', err); }
+}
+
+let saveTimer = null;
+function savePlanState(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try{
+      await supabase.from('plan_state').upsert({
+        user_id: session.user.id,
+        items: itemsById,
+        order_list: order,
+        updated_at: new Date().toISOString()
+      }, {onConflict:'user_id'});
+    }catch(err){ console.error('plan save error', err); }
+  }, 400);
+}
+
+async function loadAll(){
+  progress = {};
+  resetToBase();
+  try{
+    const {data, error} = await supabase.from('day_progress').select('*').eq('user_id', session.user.id);
+    if(error) throw error;
+    (data||[]).forEach(row=>{
+      progress[row.day_id] = {completed: row.completed, completed_at: row.completed_at, note: row.note};
+    });
+  }catch(err){ console.error('load progress error', err); }
+
+  try{
+    const {data, error} = await supabase.from('plan_state').select('*').eq('user_id', session.user.id).maybeSingle();
+    if(error) throw error;
+    if(data && data.items && data.order_list){
+      itemsById = data.items;
+      order = data.order_list;
+    }
+  }catch(err){ console.error('load plan state error', err); }
+
+  const days = buildGlobalDays();
+  const today = new Date();
+  const todayEntry = days.find(d=>sameDay(d.date, today));
+  if(todayEntry){ activeWeek = todayEntry.week; }
+}
+
+/* ---------- Boot ---------- */
+async function boot(){
+  if(!configOk){ render(); return; }
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const {data} = await supabase.auth.getSession();
+  session = data.session;
+  if(session){ await loadAll(); }
+  render();
+
+  supabase.auth.onAuthStateChange((_event, s)=>{
+    session = s;
+  });
+}
+boot();
+})();
+</script>
+</body>
+</html>
